@@ -33,7 +33,7 @@ class CrossAttention2d(nn.Module):
 
         self.W_q = nn.Linear(d_model, d_model, bias=False)
         self.W_k = nn.Linear(d_cond, d_model, bias=False)
-        self.W_v = nn.Linear(d_model, d_model, bias=False)
+        self.W_v = nn.Linear(d_cond, d_model, bias=False)
 
         self.W_o = nn.Conv2d(d_model, d_model, kernel_size=1)
 

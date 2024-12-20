@@ -125,20 +125,22 @@ class CrossAttentionFiLMUNet(nn.Module):
         self.head = nn.Conv2d(dims[0], out_channels, kernel_size=7, padding=3)
 
     def forward(self, x, t, cond, attention_mask=None):
+        t_emb = self.t_model(t)
+
         x = self.stem(x)
 
         acts = []
         for down_blocks, down_sample in zip(self.down_path, self.down_samples):
-            x = down_blocks[0](x, t, cond, attention_mask)
+            x = down_blocks[0](x, t_emb, cond, attention_mask)
             for block in down_blocks[1:]:
-                x = block(x, t)
+                x = block(x, t_emb)
 
             acts.append(x)
             x = down_sample(x)
 
-        x = self.mid_blocks[0](x, t, cond, attention_mask)
+        x = self.mid_blocks[0](x, t_emb, cond, attention_mask)
         for block in self.mid_blocks[1:]:
-            x = block(x, t)
+            x = block(x, t_emb)
 
         for up_blocks, up_sample, up_combine, act in zip(self.up_path, self.up_samples, self.up_combines, acts[::-1]):
             x = up_combine(torch.concatenate((
@@ -146,9 +148,9 @@ class CrossAttentionFiLMUNet(nn.Module):
                 act
             ), dim=1))
 
-            x = up_blocks[0](x, t, cond, attention_mask)
+            x = up_blocks[0](x, t_emb, cond, attention_mask)
             for block in up_blocks[1:]:
-                x = block(x, t)
+                x = block(x, t_emb)
 
         return self.head(x)
 
