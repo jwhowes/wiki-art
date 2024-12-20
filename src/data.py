@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset
 from datasets import load_dataset
 from torchvision import transforms
+from random import random
 from transformers import BatchEncoding, CLIPTokenizer
 
 from . import accelerator
@@ -49,13 +50,15 @@ class WikiArtDataset(Dataset):
 class ConditionalDatasetConfig(SubConfig):
     def __init__(self, config=None):
         self.image_size = 256
+        self.p_uncond = 0.1
         super().__init__(config)
 
 
 class WikiArtConditionalDataset(WikiArtDataset):
-    def __init__(self, image_size=256, text_encoder_path="openai/clip-vit-base-patch32"):
+    def __init__(self, image_size=256, p_uncond=0.1, text_encoder_path="openai/clip-vit-base-patch32"):
         super(WikiArtConditionalDataset, self).__init__(image_size=image_size)
         self.tokenizer = CLIPTokenizer.from_pretrained(text_encoder_path)
+        self.p_uncond = p_uncond
 
     def collate(self, batch):
         images, texts = zip(*batch)
@@ -68,9 +71,14 @@ class WikiArtConditionalDataset(WikiArtDataset):
     def __getitem__(self, idx):
         data = self.ds[idx]
 
-        return self.transform(data["image"]), " / ".join(
-            [data["title"], data["artist"], data["genre"], data["style"]]
-        )
+        if random() < self.p_uncond:
+            text = ""
+        else:
+            text = " / ".join(
+                [data["title"], data["artist"], data["genre"], data["style"]]
+            )
+
+        return self.transform(data["image"]), text
 
 
 class WikiArtMaskDataset(WikiArtDataset):
