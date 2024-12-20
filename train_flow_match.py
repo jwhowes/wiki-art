@@ -1,9 +1,12 @@
+import os
+import torch
+
 from torch.utils.data import DataLoader
 from argparse import ArgumentParser
 
 from src.config import Config
 from src.data import ConditionalDatasetConfig, WikiArtConditionalDataset
-from src.model import CrossAttentionFiLMUNetConfig, CrossAttentionFiLMUNet
+from src.model import CrossAttentionFiLMUNetConfig, CLIPModelConfig, CLIPModel, CrossAttentionFiLMUNet
 from src.loss import FlowMatchLoss
 from src.train import train
 
@@ -18,8 +21,13 @@ if __name__ == "__main__":
         CrossAttentionFiLMUNetConfig, ConditionalDatasetConfig, args.config
     )
 
+    clip_config = Config(
+        CLIPModelConfig, ConditionalDatasetConfig, os.path.join("experiments", config.model.clip_exp, "config.yaml")
+    )
+
     dataset = WikiArtConditionalDataset(
-        image_size=config.dataset.image_size, text_encoder_path=config.model.text_encoder_path
+        image_size=config.dataset.image_size,
+        p_uncond=config.dataset.p_uncond, text_encoder_path=clip_config.model.pretrained_path
     )
 
     model = CrossAttentionFiLMUNet(
@@ -40,8 +48,18 @@ if __name__ == "__main__":
         collate_fn=dataset.collate
     )
 
+    clip_model = CLIPModel(
+        pretrained_path=clip_config.model.pretrained_path, init_temp=clip_config.model.init_temp,
+        min_temp=clip_config.model.min_temp
+    )
+    ckpt = torch.load(
+        os.path.join("experiments", config.model.clip_exp, f"checkpoint_{config.model.clip_epoch:02}.pt"),
+        weights_only=True, map_location="cpu"
+    )
+    clip_model.load_state_dict(ckpt)
+
     loss_fn = FlowMatchLoss(
-        config.model.text_encoder_path, config.model.sigma_min
+        clip_model.text_model.text_model, config.model.sigma_min
     )
 
     train(model, dataloader, loss_fn, config)

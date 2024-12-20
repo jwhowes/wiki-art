@@ -55,7 +55,7 @@ class ConditionalDatasetConfig(SubConfig):
 
 
 class WikiArtConditionalDataset(WikiArtDataset):
-    def __init__(self, image_size=256, p_uncond=0.1, text_encoder_path="openai/clip-vit-base-patch32"):
+    def __init__(self, image_size=256, p_uncond=None, text_encoder_path="openai/clip-vit-base-patch32"):
         super(WikiArtConditionalDataset, self).__init__(image_size=image_size)
         self.tokenizer = CLIPTokenizer.from_pretrained(text_encoder_path)
         self.p_uncond = p_uncond
@@ -65,13 +65,13 @@ class WikiArtConditionalDataset(WikiArtDataset):
 
         return BatchEncoding({
             "image": torch.stack(images),
-            "cond": self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+            **self.tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
         })
 
     def __getitem__(self, idx):
         data = self.ds[idx]
 
-        if random() < self.p_uncond:
+        if self.p_uncond is not None and random() < self.p_uncond:
             text = ""
         else:
             text = " / ".join(

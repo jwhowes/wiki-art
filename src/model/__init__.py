@@ -1,7 +1,19 @@
+import os
+
 from transformers import AutoConfig
 
 from .conv import UNet, CrossAttentionFiLMUNet
-from ..config import SubConfig
+from .clip import CLIPModel
+from ..config import SubConfig, Config
+
+
+class CLIPModelConfig(SubConfig):
+    def __init__(self, config=None):
+        self.pretrained_path = "openai/clip-vit-base-patch32"
+        self.init_temp = 0.07
+        self.min_temp = 0.01
+
+        super().__init__(config)
 
 
 class UNetConfig(SubConfig):
@@ -23,9 +35,11 @@ class CrossAttentionFiLMUNetConfig(SubConfig):
 
         self.sigma_min = 1e-4
 
-        self.text_encoder_path = "openai/clip-vit-base-patch32"
+        self.clip_exp = "clip"
+        self.clip_epoch = 3
 
         super().__init__(config)
 
-        text_encoder_config = AutoConfig.from_pretrained(self.text_encoder_path)
+        clip_config = Config(CLIPModelConfig, SubConfig, os.path.join("experiments", self.clip_exp, "config.yaml"))
+        text_encoder_config = AutoConfig.from_pretrained(clip_config.model.pretrained_path)
         self.d_cond = text_encoder_config.text_config.hidden_size

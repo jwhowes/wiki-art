@@ -1,6 +1,7 @@
 lr: 5e-5
+dataset:
+  p_uncond: 0.1
 model:
   dims: [64, 128, 256, 512, 1024]
   depths: [1, 2, 2, 3, 4]
   n_heads: [2, 2, 4, 8, 16]
-  text_encoder_path: openai/clip-vit-large-patch14

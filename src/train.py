@@ -36,7 +36,8 @@ def train(
         for i, encoding in enumerate(dataloader):
             opt.zero_grad()
 
-            loss = loss_fn(model, encoding)
+            with accelerator.autocast():
+                loss = loss_fn(model, encoding)
 
             accelerator.backward(loss)
             accelerator.clip_grad_norm_(model.parameters(), config.clip_grad)
