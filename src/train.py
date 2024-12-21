@@ -31,7 +31,8 @@ def train(
 
     model.train()
     for epoch in range(config.num_epochs):
-        print(f"EPOCH {epoch + 1} / {config.num_epochs}")
+        if accelerator.is_main_process:
+            print(f"EPOCH {epoch + 1} / {config.num_epochs}")
 
         for i, encoding in enumerate(dataloader):
             opt.zero_grad()
@@ -45,7 +46,7 @@ def train(
             opt.step()
             lr_scheduler.step()
 
-            if i % config.log_interval == 0:
+            if accelerator.is_main_process and i % config.log_interval == 0:
                 print(f"{i} / {len(dataloader)} iters.\tLoss: {loss.item():.6f}")
 
         torch.save(
